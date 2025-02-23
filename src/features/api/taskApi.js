@@ -1,9 +1,5 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
-// const COURSE_API = "https://lms-backend-2-mohq.onrender.com/api/v1/course";
-// const COURSE_API = "http://localhost:8080/api/v1/course";
-// const COURSE_API = "https://lms-backend-1-5bg8.onrender.com/api/v1/course";
-
 const TASK_API = "http://localhost:8000/tasks";
 
 export const taskApi = createApi({
@@ -14,39 +10,66 @@ export const taskApi = createApi({
     credentials: "include",
   }),
   endpoints: (builder) => ({
+    // createTaskTodo: builder.mutation({
+    //   query: ({ name, description }) => ({
+    //     url: "/create",
+    //     method: "POST",
+    //     body: { name, description },
+    //     headers: {
+    //         Authorization: `Bearer ${JSON.parse(localStorage.getItem("todo-token") || '""')}`, // Safely parse the token
+    //         "Content-Type": "application/json",
+    //       },
+    //   }),
+    //   invalidatesTags: ["REFETCH_CREATOR_TODO"],
+    // }),
+
+    // getTaskTodo: builder.query({
+    //     query: ({ search = "", status = "", startDate = "", endDate = "", page = 1, limit = 10 }) => ({
+    //       url: `/getTasks?search=${search}&status=${status}&startDate=${startDate}&endDate=${endDate}&page=${page}&limit=${limit}`,
+    //       method: "GET",
+    //       headers: {
+    //         Authorization: `Bearer ${JSON.parse(localStorage.getItem("todo-token") || '""')}`,
+    //         "Content-Type": "application/json",
+    //       },
+    //     }),
+    //   }),
     createTaskTodo: builder.mutation({
       query: ({ name, description }) => ({
         url: "/create",
         method: "POST",
         body: { name, description },
         headers: {
-            Authorization: `Bearer ${JSON.parse(localStorage.getItem("todo-token") || '""')}`, // Safely parse the token
-            "Content-Type": "application/json",
-          },
+          Authorization: `Bearer ${JSON.parse(localStorage.getItem("todo-token") || '""')}`,
+          "Content-Type": "application/json",
+        },
       }),
-      invalidatesTags: ["REFETCH_CREATOR_TODO"],
+      // Add onQueryStarted to handle the cache update
+      async onQueryStarted(_, { dispatch, queryFulfilled }) {
+        try {
+          await queryFulfilled;
+          // Invalidate all existing task queries
+          dispatch(
+            taskApi.util.invalidateTags(['REFETCH_CREATOR_TODO'])
+          );
+        } catch (err) {
+          console.error('Error creating task:', err);
+        }
+      },
+      invalidatesTags: ['REFETCH_CREATOR_TODO'],
     }),
-    // getTaskTodo: builder.query({
-    //   query: () => ({
-    //     url: "/getTasks",
-    //     method: "GET",
-    //     headers: {
-    //         Authorization: `Bearer ${JSON.parse(localStorage.getItem("todo-token") || '""')}`, // Safely parse the token
-    //         "Content-Type": "application/json",
-    //       },
-    //   }),
-    // }),
-
+    
+    // And update the getTaskTodo query to include the tag:
     getTaskTodo: builder.query({
-        query: ({ search = "", status = "", startDate = "", endDate = "", page = 1, limit = 10 }) => ({
-          url: `/getTasks?search=${search}&status=${status}&startDate=${startDate}&endDate=${endDate}&page=${page}&limit=${limit}`,
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${JSON.parse(localStorage.getItem("todo-token") || '""')}`,
-            "Content-Type": "application/json",
-          },
-        }),
+      query: ({ search = "", status = "", startDate = "", endDate = "", page = 1, limit = 10 }) => ({
+        url: `/getTasks?search=${search}&status=${status}&startDate=${startDate}&endDate=${endDate}&page=${page}&limit=${limit}`,
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${JSON.parse(localStorage.getItem("todo-token") || '""')}`,
+          "Content-Type": "application/json",
+        },
       }),
+      providesTags: ['REFETCH_CREATOR_TODO'],
+    }),
     deleteTaskTodo: builder.mutation({
         query: ({ _id }) => ({
           url: `/delete/${_id}`,
